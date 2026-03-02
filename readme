@@ -1,0 +1,5 @@
+frontend: conda activate gpt2i && cd ~/gemma-explorer/frontend && npm run dev
+
+backend: conda activate gpt2i && python -m backend.main
+
+
