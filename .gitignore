@@ -25,6 +25,7 @@ frontend/dist/
 # Data
 backend/data/feature_library/*.json
 backend/data/feature_library/*.pt
+backend/data/prompt_library/*.json
 
 # OS
 .DS_Store

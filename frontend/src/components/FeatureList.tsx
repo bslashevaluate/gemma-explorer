@@ -1,8 +1,23 @@
+import { useMemo } from 'react';
 import { useConceptStore } from '../stores/conceptStore';
 import { FeatureCard } from './FeatureCard';
 
 export function FeatureList() {
-  const { discoveredFeatures, isDiscovering, enableAll, disableAll } = useConceptStore();
+  const { discoveredFeatures, isDiscovering, enableAll, disableAll, toggleCluster } = useConceptStore();
+
+  const clusters = useMemo(() => {
+    const map = new Map<number | 'unclustered', typeof discoveredFeatures>();
+    for (const f of discoveredFeatures) {
+      const key = f.cluster_id ?? 'unclustered';
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(f);
+    }
+    return Array.from(map.entries()).sort((a, b) => {
+      if (a[0] === 'unclustered') return 1;
+      if (b[0] === 'unclustered') return -1;
+      return (a[0] as number) - (b[0] as number);
+    });
+  }, [discoveredFeatures]);
 
   if (isDiscovering) {
     return (
@@ -22,8 +37,10 @@ export function FeatureList() {
   const enabledCount = discoveredFeatures.filter((f) => f.enabled).length;
   const allEnabled = enabledCount === discoveredFeatures.length;
 
+
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-200">
           Discovered Features
@@ -40,14 +57,36 @@ export function FeatureList() {
           </span>
         </div>
       </div>
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        {discoveredFeatures.map((f) => (
-          <FeatureCard
-            key={`${f.layer}-${f.feature_index}`}
-            feature={f}
-          />
-        ))}
-      </div>
+
+      {clusters.map(([clusterId, features]) => {
+        const clusterEnabledCount = features.filter((f) => f.enabled).length;
+        const allClusterEnabled = clusterEnabledCount === features.length;
+        const clusterName = clusterId === 'unclustered' ? 'Unclustered Features' : `Cluster ${Number(clusterId) + 1}`;
+
+        return (
+          <div key={String(clusterId)} className="space-y-3">
+            <div className="flex items-center justify-between border-b border-gray-700 pb-2">
+              <h3 className="text-md font-medium text-gray-300">
+                {clusterName} <span className="text-xs text-gray-500 ml-2">({features.length} features)</span>
+              </h3>
+              <button
+                onClick={() => toggleCluster(clusterId === 'unclustered' ? undefined : (clusterId as number), !allClusterEnabled)}
+                className="text-xs text-indigo-400 hover:text-indigo-300"
+              >
+                {allClusterEnabled ? 'Disable cluster' : 'Enable cluster'}
+              </button>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {features.map((f) => (
+                <FeatureCard
+                  key={`${f.layer}-${f.feature_index}`}
+                  feature={f}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

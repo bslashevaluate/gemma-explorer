@@ -98,3 +98,7 @@ class SAEManager:
     def get_decoder_vector(self, layer: int, feature_index: int) -> torch.Tensor:
         """Get the decoder direction for a specific feature (used for steering)."""
         return self.saes[layer].W_dec[feature_index]
+
+    def get_all_decoder_vectors(self, layer: int) -> torch.Tensor:
+        """Get all decoder vectors for a specific layer."""
+        return self.saes[layer].W_dec
