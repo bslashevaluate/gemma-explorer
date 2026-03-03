@@ -18,6 +18,8 @@ interface ConceptState {
   setIsDiscovering: (v: boolean) => void;
   setDiscoveryMode: (mode: 'simple' | 'contrastive') => void;
   toggleFeature: (layer: number, index: number) => void;
+  toggleCluster: (clusterId: number | undefined, enabled: boolean) => void;
+  addNearbyFeatures: (features: DiscoveredFeature[], parentClusterId?: number) => void;
   setFeatureAlpha: (layer: number, index: number, alpha: number) => void;
   setFeatureExplanation: (layer: number, index: number, explanation: string) => void;
   enableAll: () => void;
@@ -54,6 +56,31 @@ export const useConceptStore = create<ConceptState>((set, get) => ({
           : f
       ),
     })),
+
+  toggleCluster: (clusterId, enabled) =>
+    set((state) => ({
+      discoveredFeatures: state.discoveredFeatures.map((f) =>
+        f.cluster_id === clusterId ? { ...f, enabled } : f
+      ),
+    })),
+
+  addNearbyFeatures: (features, parentClusterId) =>
+    set((state) => {
+      const existing = new Set(
+        state.discoveredFeatures.map((f) => `${f.layer}-${f.feature_index}`)
+      );
+      const newFeatures = features
+        .filter((f) => !existing.has(`${f.layer}-${f.feature_index}`))
+        .map((f) => ({
+          ...f,
+          enabled: true,
+          alpha: 10.0,
+          cluster_id: parentClusterId !== undefined ? parentClusterId : f.cluster_id,
+        }));
+      return {
+        discoveredFeatures: [...state.discoveredFeatures, ...newFeatures],
+      };
+    }),
 
   setFeatureAlpha: (layer, index, alpha) =>
     set((state) => ({

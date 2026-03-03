@@ -20,6 +20,12 @@ class DiscoverRequest(BaseModel):
     )
 
 
+class NearbyRequest(BaseModel):
+    layer: int = Field(..., description="Layer of the target feature")
+    feature_index: int = Field(..., description="Index of the target feature")
+    top_k: int = Field(50, ge=1, le=200, description="Number of nearby features to return")
+
+
 class DiscoverResponse(BaseModel):
     concept: str
     features: list[DiscoveredFeature]
@@ -60,3 +66,22 @@ async def discover_features(body: DiscoverRequest, request: Request) -> Discover
         raise HTTPException(status_code=500, detail=str(e))
 
     return DiscoverResponse(concept=body.concept, features=features, mode=mode)
+
+
+@router.post("/nearby", response_model=DiscoverResponse)
+async def discover_nearby(body: NearbyRequest, request: Request) -> DiscoverResponse:
+    """Discover features visually / semantically near a specific feature."""
+    discovery = request.app.state.concept_discovery
+
+    try:
+        features = await discovery.find_nearby_features(
+            layer=body.layer,
+            feature_index=body.feature_index,
+            top_k=body.top_k,
+        )
+        mode = "nearby"
+    except Exception as e:
+        logger.error("Nearby discovery failed:\n%s", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return DiscoverResponse(concept=f"Nearby L{body.layer}/{body.feature_index}", features=features, mode=mode)

@@ -1,12 +1,28 @@
 import { useEffect, useState } from 'react';
-import { ExternalLink, ToggleLeft, ToggleRight } from 'lucide-react';
-import { getFeature } from '../api/client';
+import { ExternalLink, ToggleLeft, ToggleRight, Network } from 'lucide-react';
+import { getFeature, discoverNearbyFeatures } from '../api/client';
 import { useConceptStore, type SelectedFeature } from '../stores/conceptStore';
 import { getCachedExplanation, setCachedExplanation } from '../utils/featureCache';
 
 export function FeatureCard({ feature }: { feature: SelectedFeature }) {
-  const { toggleFeature, setFeatureAlpha, setFeatureExplanation } = useConceptStore();
+  const { toggleFeature, setFeatureAlpha, setFeatureExplanation, addNearbyFeatures } = useConceptStore();
   const [explanationFailed, setExplanationFailed] = useState(false);
+  const [isFindingNearby, setIsFindingNearby] = useState(false);
+
+  const handleFindNearby = async () => {
+    if (isFindingNearby) return;
+    setIsFindingNearby(true);
+    try {
+      const res = await discoverNearbyFeatures({ layer: feature.layer, feature_index: feature.feature_index, top_k: 10 });
+      // Exclude the feature itself just in case it's returned
+      const newFeatures = res.features.filter(f => !(f.layer === feature.layer && f.feature_index === feature.feature_index));
+      addNearbyFeatures(newFeatures, feature.cluster_id);
+    } catch (e) {
+      console.error("Failed to find nearby features", e);
+    } finally {
+      setIsFindingNearby(false);
+    }
+  };
 
   useEffect(() => {
     if (feature.explanation) return;
@@ -40,11 +56,10 @@ export function FeatureCard({ feature }: { feature: SelectedFeature }) {
 
   return (
     <div
-      className={`rounded-lg border p-3 transition-colors ${
-        feature.enabled
+      className={`rounded-lg border p-3 transition-colors ${feature.enabled
           ? 'border-indigo-400 bg-indigo-950/30'
           : 'border-gray-700 bg-gray-900/50 opacity-60'
-      }`}
+        }`}
     >
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2">
@@ -68,6 +83,14 @@ export function FeatureCard({ feature }: { feature: SelectedFeature }) {
           >
             <ExternalLink size={14} />
           </a>
+          <button
+            onClick={handleFindNearby}
+            disabled={isFindingNearby}
+            className={`text-gray-400 hover:text-indigo-400 disabled:opacity-50 ${isFindingNearby ? 'animate-pulse' : ''}`}
+            title="Find Nearby Features"
+          >
+            <Network size={14} />
+          </button>
           <button
             onClick={() => toggleFeature(feature.layer, feature.feature_index)}
             className="text-gray-400 hover:text-white"

@@ -11,6 +11,7 @@ export interface DiscoveredFeature {
   feature_index: number;
   activation_strength: number;
   concept_text: string;
+  cluster_id?: number;
 }
 
 export interface DiscoverRequest {
@@ -24,6 +25,12 @@ export interface DiscoverResponse {
   concept: string;
   features: DiscoveredFeature[];
   mode: string;
+}
+
+export interface NearbyRequest {
+  layer: number;
+  feature_index: number;
+  top_k?: number;
 }
 
 export interface ChatMessage {
@@ -82,6 +89,11 @@ export interface NeuronpediaSearchResult {
 
 export async function discoverFeatures(req: DiscoverRequest): Promise<DiscoverResponse> {
   const { data } = await api.post<DiscoverResponse>('/discover', req);
+  return data;
+}
+
+export async function discoverNearbyFeatures(req: NearbyRequest): Promise<DiscoverResponse> {
+  const { data } = await api.post<DiscoverResponse>('/discover/nearby', req);
   return data;
 }
 
